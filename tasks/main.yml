@@ -67,18 +67,30 @@
         loop_var: storage_pool
         index_var: storage_pool_index
       register: updated
+    - name: Update storage_layout with changes
+      ansible.builtin.set_fact:
+        storage_layout: "{{ updated.results[-1].storage_layout }}"
+      delegate_to: localhost
     # - name: Show storage layout
     #   ansible.builtin.debug:
-    #     msg: "{{ updated.results[-1].storage_layout }}"
-    #   delegate_to: localhost
+    #     msg: "{{ storage_layout }}"
+    - name: Update raid_disks for any striped volume where it isn't set
+      ansible.builtin.include_tasks:
+        file: update_raid_disks.yml
+      loop: "{{ storage_layout }}"
+      loop_control:
+        loop_var: storage_pool
+        index_var: storage_pool_index
     - name: Set storage pools to match modified storage layout from vars
       ansible.builtin.set_fact:
-        storage_pools: "{{ updated.results[-1].storage_layout }}"
+        storage_pools: "{{ storage_layout }}"
       delegate_to: localhost
     - name: Show storage layout
       ansible.builtin.debug:
         msg: "{{ storage_pools }}"
       delegate_to: localhost
+    - name: End play
+      ansible.builtin.meta: end_play
 - name: Provision Storage
   become: true
   block:

@@ -1,0 +1,42 @@
+- name: Get storage pools to path list mapping
+  changed_when: false
+  ansible.utils.update_fact:
+    updates:
+      - path: "storage_layout[{{ storage_pool_index }}].volumes[{{ volume_index }}].raid_disks"
+        value: >-
+          {%- set disks = [] -%}
+            {%- for disk in storage_pool.disks -%}
+            {%- set disks = disks.append(disk) -%}
+          {%- endfor -%}
+          {{ disks }}
+  delegate_to: localhost
+  loop: "{{ storage_layout[storage_pool_index].volumes }}"
+  loop_control:
+    loop_var: volume
+    index_var: volume_index
+  when:
+    - storage_pool.type is defined
+    - storage_pool.type == 'lvm'
+    - volume.raid_level is defined
+    - volume.raid_level == 'striped'
+    - volume.raid_disks is not defined
+  register: updated
+- name: Show values
+  ansible.builtin.debug:
+    msg: "{{ updated }}"
+- name: Update storage_layout with changes
+  ansible.builtin.set_fact:
+    storage_layout: "{{ updated.results[-1].storage_layout }}"
+  when: not updated.skipped
+  delegate_to: localhost
+# - name: Show values
+#   ansible.builtin.debug:
+#     msg:
+#       - "{{ volume }}"
+#       - "{{ volume_index }}"
+#       - "{{ storage_pool }}"
+#       - "{{ storage_pool_index }}"
+#   loop: "{{ storage_layout[storage_pool_index].volumes }}"
+#   loop_control:
+#     loop_var: volume
+#     index_var: volume_index
