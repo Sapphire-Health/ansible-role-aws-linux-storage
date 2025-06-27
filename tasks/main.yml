@@ -89,8 +89,6 @@
       ansible.builtin.debug:
         msg: "{{ storage_pools }}"
       delegate_to: localhost
-    - name: End play
-      ansible.builtin.meta: end_play
 - name: Provision Storage
   become: true
   block:
