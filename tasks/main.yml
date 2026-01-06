@@ -1,19 +1,34 @@
+- name: Assume role for cross-account instances
+  when: assume_role_arn is defined
+  block:
+    - name: Assume role
+      amazon.aws.sts_assume_role:
+        role_arn: "{{ assume_role_arn }}"
+        role_session_name: ansible-{{ inventory_hostname_short }}
+      register: assumed_role
+      changed_when: false
+      delegate_to: localhost
+    - name: Set AWS environment variables
+      ansible.builtin.set_fact:
+        aws_env:
+          AWS_ACCESS_KEY_ID: "{{ assumed_role.sts_creds.access_key }}"
+          AWS_SECRET_ACCESS_KEY: "{{ assumed_role.sts_creds.secret_key }}"
+          AWS_SESSION_TOKEN: "{{ assumed_role.sts_creds.session_token }}"
 - name: Prepare storage variables
   block:
     - name: Get EC2 instance info
       amazon.aws.ec2_instance_info:
-        # access_key: "{{ lookup('env', 'AWS_ACCESS_KEY_ID', default=access_key) }}"
-        # secret_key: "{{ lookup('env', 'AWS_SECRET_ACCESS_KEY', default=secret_key) }}"
-        # session_token: "{{ lookup('env', 'AWS_SESSION_TOKEN', default=session_token | default(omit)) }}"
         filters:
           "tag:Name": "{{ inventory_hostname_short }}"
           instance-state-name: ["running"]
         region: "{{ hostvars[inventory_hostname].placement.region }}"
       register: ec2_instance
+      failed_when: ec2_instance.instances | length == 0
+      environment: "{{ aws_env | default({}) }}"
       delegate_to: localhost
     - name: Show EC2 instance info
       ansible.builtin.debug:
-        msg: "{{ ec2_instance.instances[0].instance_id }}"
+        msg: "{{ ec2_instance }}"
       delegate_to: localhost
     - name: Make sure one instance was returned
       ansible.builtin.fail:
@@ -26,13 +41,11 @@
       delegate_to: localhost
     - name: Gather EC2 volume info
       amazon.aws.ec2_vol_info:
-        # access_key: "{{ lookup('env', 'AWS_ACCESS_KEY_ID', default=access_key) }}"
-        # secret_key: "{{ lookup('env', 'AWS_SECRET_ACCESS_KEY', default=secret_key) }}"
-        # session_token: "{{ lookup('env', 'AWS_SESSION_TOKEN', default=session_token | default(omit)) }}"
         filters:
           attachment.instance_id: "{{ ec2_instance.instances[0].instance_id }}"
         region: "{{ hostvars[inventory_hostname].placement.region }}"
       register: ec2_vol_info
+      environment: "{{ aws_env | default({}) }}"
       delegate_to: localhost
     - name: Show EC2 volume info
       ansible.builtin.debug:
