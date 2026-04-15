@@ -27,7 +27,7 @@
         region: "{{ hostvars[inventory_hostname].placement.region }}"
       register: aws_linux_storage_ec2_instance
       failed_when: aws_linux_storage_ec2_instance.instances | length == 0
-      environment: "{{ aws_linux_storage_aws_linux_storage_aws_env | default({}) }}"
+      environment: "{{ aws_linux_storage_aws_env | default({}) }}"
       delegate_to: localhost
 
     - name: Show EC2 instance info
