@@ -52,7 +52,7 @@
           attachment.instance_id: "{{ aws_linux_storage_ec2_instance.instances[0].instance_id }}"
         region: "{{ hostvars[inventory_hostname].placement.region }}"
       register: aws_linux_storage_ec2_vol_info
-      environment: "{{ aws_linux_storage_aws_linux_storage_aws_env | default({}) }}"
+      environment: "{{ aws_linux_storage_aws_env | default({}) }}"
       delegate_to: localhost
 
     - name: Show EC2 volume info
